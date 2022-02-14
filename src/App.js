@@ -8,11 +8,13 @@ import GlobalStyle from "./styles/global";
 import { Container, Content } from "./styles";
 
 import Upload from "./components/Upload";
-import FileList from "./components/FileList";
+
+import { saveAs } from 'file-saver'
 
 class App extends Component {
   state = {
-    uploadedFiles: []
+    uploadedFiles: [],
+    imagem: {}
   };
 
   async componentDidMount() {
@@ -76,41 +78,43 @@ class App extends Component {
         }
       })
       .then(response => {
-        this.updateFile(uploadedFile.id, {
-          uploaded: true,
-          id: response.data._id,
-          url: response.data.url
-        });
+        this.base64ToImage(response);
       })
       .catch(() => {
-        this.updateFile(uploadedFile.id, {
-          error: true
-        });
+        console.log("ERRO");
       });
   };
 
-  handleDelete = async id => {
-    await api.delete(`posts/${id}`);
+  base64ToImage(response){
+    let dataurl = 'data:image/png;base64,' + response.data;
+    
+    var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+    bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+    while(n--){
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    
+    let newData = new File([u8arr], 'AcademiaDigital.png', {type:mime});
 
     this.setState({
-      uploadedFiles: this.state.uploadedFiles.filter(file => file.id !== id)
+      imagem: newData
     });
-  };
 
-  componentWillUnmount() {
-    this.state.uploadedFiles.forEach(file => URL.revokeObjectURL(file.preview));
+    this.downloadImage();
+  }
+
+  downloadImage = () => {
+    console.log("DOWNLOAD", this.state.imagem)
+    
+    saveAs(this.state.imagem);
   }
 
   render() {
-    const { uploadedFiles } = this.state;
-
     return (
       <Container>
         <Content>
           <Upload onUpload={this.handleUpload} />
-          {!!uploadedFiles.length && (
-            <FileList files={uploadedFiles} onDelete={this.handleDelete} />
-          )}
+          {/* <button onClick={this.downloadImage}>Download!</button> */}
         </Content>
         <GlobalStyle />
       </Container>
